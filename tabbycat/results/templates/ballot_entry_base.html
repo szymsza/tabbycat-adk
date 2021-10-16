@@ -26,6 +26,21 @@
 
 {% block page-alerts %}
 
+{% if pref.ballot_introduction %}
+<div class="card mt-3">
+  <div class="list-group list-group-flush">
+    <div class="list-group-item pt-4">
+      <h4 class="card-title mt-0 mb-2 d-inline-block">
+        {% trans "Ballot instructions" %}
+      </h4>
+    </div>
+    <div class="list-group-item pb-4">
+      <p>{{ pref.ballot_introduction|safe }}</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
   {% if round.ballots_per_debate == 'per-adj' and debate.adjudicators.is_even %}
     {% blocktrans trimmed asvar message %}
       This debate has a panel with an even number of voting adjudicators.

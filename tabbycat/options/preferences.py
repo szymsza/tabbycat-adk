@@ -938,6 +938,17 @@ class BallotsHideMotions(BooleanPreference):
     default = False
 
 
+@tournament_preferences_registry.register
+class BallotIntroduction(LongStringPreference):
+    help_text = _("Any explanatory text needed to introduce the ballot form (leave blank to disable)")
+    verbose_name = _("Ballot introduction/explanation")
+    section = data_entry
+    name = 'ballot_introduction'
+    default = ''
+    widget = SummernoteWidget(attrs={'height': 150, 'class': 'form-summernote'})
+    field_kwargs = {'required': False}
+
+
 # ==============================================================================
 public_features = Section('public_features', verbose_name=_("Public Features"))
 # ==============================================================================
