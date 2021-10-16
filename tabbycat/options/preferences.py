@@ -929,6 +929,15 @@ class SplitVotingBallots(BooleanPreference):
     default = False
 
 
+@tournament_preferences_registry.register
+class BallotsHideMotions(BooleanPreference):
+    help_text = _("Whether the printed scoresheets should hide the text of motions (even if they have been entered and released)")
+    verbose_name = _("Ballot Hide Motions")
+    section = data_entry
+    name = 'ballots_hide_motions'
+    default = False
+
+
 # ==============================================================================
 public_features = Section('public_features', verbose_name=_("Public Features"))
 # ==============================================================================
@@ -1351,15 +1360,6 @@ class EnableMotions(BooleanPreference):
     section = motions
     name = 'enable_motions'
     default = True
-
-
-@tournament_preferences_registry.register
-class BallotsHideMotions(BooleanPreference):
-    help_text = _("Whether the printed scoresheets should hide the text of motions (even if they have been entered and released)")
-    verbose_name = _("Ballot Hide Motions")
-    section = data_entry
-    name = 'ballots_hide_motions'
-    default = False
 
 
 @tournament_preferences_registry.register
