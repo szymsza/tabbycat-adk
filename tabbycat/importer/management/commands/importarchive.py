@@ -26,7 +26,7 @@ class Command(BaseCommand):
         if the file doesn't appear to exist, or is not an XML file."""
 
         def _check_return(path):
-            if not os.path.isfile(path) or os.path.splitext[1] != '.xml':
+            if not os.path.isfile(path) or os.path.splitext(path)[1] != '.xml':
                 raise CommandError("The path '%s' is not a valid XML file" % path)
             self.stdout.write('Importing from file: ' + path)
             return path
@@ -41,6 +41,5 @@ class Command(BaseCommand):
 
     def create_tournament(self):
         """Given the path, does everything necessary to create the tournament."""
-        contents = open(self.filepath, 'r')
-        importer = Importer(ElementTree.fromstring(contents))
+        importer = Importer(ElementTree.parse(self.filepath).getroot())
         importer.import_tournament()
