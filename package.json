@@ -72,6 +72,6 @@
   "repository": "https://github.com/TabbycatDebate/tabbycat",
   "version": "3.18.1",
   "devDependencies": {
-    "eslint-plugin-html": "^6.2.0"
+    "eslint-plugin-html": "^7.1.0"
   }
 }
