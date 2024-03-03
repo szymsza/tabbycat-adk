@@ -2,30 +2,40 @@
 # This sets up and runs postgres and the django dev server as services
 # Reference: https://docs.docker.com/compose/compose-file/
 
+# Configuration options are in .env
+
 # Initial setup with
 # $ docker-compose -f docker-compose.yml up
 
 # Can run management commands with
-# $ docker-compose run web /code/manage.py whatever
+# $ docker-compose run web manage.py whatever
+
+#  WARNING: This is the development docker-compose file. For production use, see docker-compose.prod.yml
 
 version: '3'
 
 services:
   db:
-    image: postgres:12
+    image: postgres:12-alpine
     environment:
       - POSTGRES_PASSWORD=tabbycat
       - POSTGRES_USER=tabbycat
       - POSTGRES_DB=tabbycat
+      - TIME_ZONE=${TIME_ZONE}
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
   redis:
-    image: redis:6
+    image: redis:6-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
     volumes:
      - redis_data:/data
 
   web:
+    image: ${DOCKER_IMAGE:-ghcr.io/tabbycatdebate}/tabbycat:${DOCKER_IMAGE_TAG:-latest}
     build: .
     # Hack to wait until Postgres is up before running things
     command: ["./bin/docker-wait.sh", "--timeout=0", "db:5432", "--", "./bin/docker-run-honcho.sh"]
@@ -40,13 +50,14 @@ services:
       - DISABLE_SENTRY=1
       - DOCKER_REDIS=1
       - USING_NGINX=1
+      - TIME_ZONE=${TIME_ZONE}
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
       - ./tabbycat/settings:/tcd/tabbycat/settings
-    working_dir: /tcd
 
   worker:
+    image: ${DOCKER_IMAGE:-ghcr.io/tabbycatdebate}/tabbycat:${DOCKER_IMAGE_TAG:-latest}
     build: .
     # Hack to wait until migration is done before running things
     command: ["./bin/docker-wait.sh", "--timeout=0", "web:8000", "--", "./bin/docker-run-worker.sh"]
@@ -61,9 +72,7 @@ services:
       - USING_NGINX=1
     volumes:
       - ./tabbycat/settings:/tcd/tabbycat/settings
-    working_dir: /tcd
 
 volumes:
   pgdata:
-  node_modules:
   redis_data:

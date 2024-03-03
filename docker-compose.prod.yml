@@ -3,6 +3,8 @@
 # Reference: https://docs.docker.com/compose/compose-file/
 # Note that this file extends and overrides what is specified in docker-compose.yml
 
+# Configuration options are in .env
+
 # Initial setup with
 # $ docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
 
@@ -14,6 +16,7 @@ version: '3'
 services:
 
   web:
+    restart: on-failure
     environment:
       - DEBUG=0
       - DOCKER_REDIS=1
@@ -21,6 +24,7 @@ services:
       - USING_NGINX=1
 
   worker:
+    restart: on-failure
     environment:
       - DEBUG=0
       - DOCKER_REDIS=1

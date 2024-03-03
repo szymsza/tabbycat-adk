@@ -1,4 +1,4 @@
-# This is the 'actual' Procfile run by heroku (via Honcho)
+# This is the Procfile run by Honcho when running in Docker
 
 # Nginx is the reverse proxy
 # This allows static files to be served directly and to split traffic between

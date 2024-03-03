@@ -17,7 +17,7 @@ DATABASES = {
     }
 }
 
-if bool(int(os.environ['DOCKER_REDIS'])) if 'DOCKER_REDIS' in os.environ else False:
+if bool(int(os.environ.get('DOCKER_REDIS', '0'))):
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",

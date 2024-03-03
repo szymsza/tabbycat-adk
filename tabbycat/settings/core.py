@@ -379,3 +379,38 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+# ==============================================================================
+# Email / SendGrid
+# ==============================================================================
+
+if os.environ.get('EMAIL_HOST', ''):
+    SERVER_EMAIL = os.environ['DEFAULT_FROM_EMAIL']
+    DEFAULT_FROM_EMAIL = os.environ['DEFAULT_FROM_EMAIL']
+    EMAIL_HOST = os.environ['EMAIL_HOST']
+    EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
+    EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
+
+elif os.environ.get('SENDGRID_API_KEY', ''):
+    SERVER_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'root@localhost')
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'notconfigured@tabbycatsite')
+    EMAIL_HOST = 'smtp.sendgrid.net'
+    EMAIL_HOST_USER = 'apikey'
+    EMAIL_HOST_PASSWORD = os.environ['SENDGRID_API_KEY']
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+
+elif os.environ.get('SENDGRID_USERNAME', ''):
+    # These settings are deprecated as of Tabbycat 2.6.0 (Ocicat).
+    # When removing, also remove utils.mixins.WarnAboutLegacySendgridConfigVarsMixin and
+    # templates/errors/legacy_sendgrid_warning.html (and references thereto).
+    USING_LEGACY_SENDGRID_CONFIG_VARS = True
+    SERVER_EMAIL = os.environ['SENDGRID_USERNAME']
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', os.environ['SENDGRID_USERNAME'])
+    EMAIL_HOST = 'smtp.sendgrid.net'
+    EMAIL_HOST_USER = os.environ['SENDGRID_USERNAME']
+    EMAIL_HOST_PASSWORD = os.environ['SENDGRID_PASSWORD']
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
