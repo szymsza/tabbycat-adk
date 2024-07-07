@@ -17,15 +17,6 @@ DATABASES = {
     }
 }
 
-if os.environ.get('EMAIL_HOST', ''):
-    DEFAULT_FROM_EMAIL = os.environ['DEFAULT_FROM_EMAIL']
-    SERVER_EMAIL = os.environ['DEFAULT_FROM_EMAIL']
-    EMAIL_HOST = os.environ['EMAIL_HOST']
-    EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
-    EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
-    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
-    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
-
 if bool(int(os.environ['DOCKER_REDIS'])) if 'DOCKER_REDIS' in os.environ else False:
     CACHES = {
         "default": {
