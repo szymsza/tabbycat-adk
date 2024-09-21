@@ -12,6 +12,7 @@ version: '3'
 
 services:
   db:
+    restart: always
     image: postgres:12
     environment:
       - POSTGRES_PASSWORD=tabbycat
@@ -21,11 +22,13 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   redis:
+    restart: always
     image: redis:6
     volumes:
      - redis_data:/data
 
   web:
+    restart: always
     build: .
     # Hack to wait until Postgres is up before running things
     command: ["./bin/docker-wait.sh", "--timeout=0", "db:5432", "--", "./bin/docker-run-honcho.sh"]
@@ -41,12 +44,13 @@ services:
       - DOCKER_REDIS=1
       - USING_NGINX=1
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8069:8000"
     volumes:
       - ./tabbycat/settings:/tcd/tabbycat/settings
     working_dir: /tcd
 
   worker:
+    restart: always
     build: .
     # Hack to wait until migration is done before running things
     command: ["./bin/docker-wait.sh", "--timeout=0", "web:8000", "--", "./bin/docker-run-worker.sh"]
