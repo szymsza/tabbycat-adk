@@ -3,7 +3,7 @@ import os
 from django.contrib.messages import constants as messages
 from django.utils.translation import gettext_lazy as _
 
-CSRF_TRUSTED_ORIGINS = [“http://*.debatovani.cz”]
+CSRF_TRUSTED_ORIGINS = ["http://*.debatovani.cz"]
 
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(__file__, os.pardir)))
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
