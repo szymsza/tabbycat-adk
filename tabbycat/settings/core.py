@@ -25,9 +25,9 @@ if os.environ.get('DJANGO_SECRET_KEY', ''):
 # Version
 # ==============================================================================
 
-TABBYCAT_VERSION = '2.9.0'
+TABBYCAT_VERSION = '2.9.2'
 TABBYCAT_CODENAME = 'Ragdoll'
-READTHEDOCS_VERSION = 'v2.9.0'
+READTHEDOCS_VERSION = 'v2.9.2'
 
 # ==============================================================================
 # Internationalization and Localization

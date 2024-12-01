@@ -18,7 +18,6 @@ from participants.templatetags.team_name_for_data_entry import team_name_for_dat
 from tournaments.utils import get_side_name
 
 from .consumers import BallotResultConsumer, BallotStatusConsumer
-from .models import ScoreCriterion
 from .result import (ConsensusDebateResult, ConsensusDebateResultWithScores,
                      DebateResultByAdjudicator, DebateResultByAdjudicatorWithScores)
 from .utils import get_status_meta, side_and_position_names
@@ -147,7 +146,7 @@ class BaseResultForm(forms.Form):
 
         self.debate = ballotsub.debate
         self.tournament = self.debate.round.tournament
-        self.criteria = ScoreCriterion.objects.filter(tournament=self.tournament)
+        self.criteria = self.debate.round.tournament.scorecriterion_set.all().order_by('seq')
 
         self.result = kwargs.pop('result', self.result_class(self.ballotsub, criteria=self.criteria))
         self.filled = kwargs.pop('filled', False)
@@ -746,7 +745,7 @@ class SingleBallotSetForm(ScoresMixin, BaseBallotSetForm):
         else:
             if len(totals) == 2:
                 max_teams = [side for side, total in side_totals.items() if total == max(totals)]
-                high_point_declared = cleaned_data.get(self._fieldname_declared_winner()) in max_teams
+                high_point_declared = int(cleaned_data.get(self._fieldname_declared_winner())) in max_teams
 
                 # Check that no teams had the same total
                 if totals[0] == totals[1] and self.declared_winner in ['none', 'high-points']:
@@ -917,7 +916,7 @@ class PerAdjudicatorBallotSetForm(ScoresMixin, BaseBallotSetForm):
             else:
                 if len(totals) == 2:
                     max_teams = [side for side, total in side_totals.items() if total == max(totals)]
-                    high_point_declared = cleaned_data.get(self._fieldname_declared_winner(adj)) in max_teams
+                    high_point_declared = int(cleaned_data.get(self._fieldname_declared_winner(adj))) in max_teams
 
                     # Check that it was not a draw.
                     if totals[0] == totals[1] and self.declared_winner in ['none', 'high-points']:
