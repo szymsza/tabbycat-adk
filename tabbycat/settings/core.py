@@ -25,9 +25,9 @@ if os.environ.get('DJANGO_SECRET_KEY', ''):
 # Version
 # ==============================================================================
 
-TABBYCAT_VERSION = '2.9.2'
+TABBYCAT_VERSION = '2.9.3'
 TABBYCAT_CODENAME = 'Ragdoll'
-READTHEDOCS_VERSION = 'v2.9.2'
+READTHEDOCS_VERSION = 'v2.9.3'
 
 # ==============================================================================
 # Internationalization and Localization
@@ -99,6 +99,7 @@ FORMAT_MODULE_PATH = [
 MIDDLEWARE = [
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     # User language preferences; must be after Session
