@@ -23,7 +23,7 @@ RUN npm install --only=production
 COPY . ./
 
 # Build the static files
-RUN npm run build
+RUN --mount=type=cache,target=/app/node_modules/.cache npm run build
 
 
 ########################
