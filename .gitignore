@@ -82,3 +82,7 @@ nosetests.xml
 
 # Redis
 dump.rdb
+
+# Environment variables file (user-specific, might contain secrets)
+.env
+

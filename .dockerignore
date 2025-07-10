@@ -12,3 +12,6 @@ docs/
 # Symlinks (they don't work on Windows)
 manage.py
 data/test/standard
+
+# Environment variables file (might contain secrets, should be kept outsite)
+.env
