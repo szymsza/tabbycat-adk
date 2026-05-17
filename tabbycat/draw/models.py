@@ -180,6 +180,8 @@ class Debate(models.Model):
     def get_team(self, side: int) -> 'Team':
         if not hasattr(self, '_team_properties'):
             self._populate_teams()
+        if side == "bye":
+        	return self.teams[0]
         return self.teams[side]
 
     def get_dt(self, side: int) -> 'DebateTeam':
