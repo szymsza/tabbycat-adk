@@ -588,6 +588,10 @@ class Round(models.Model):
         return self.motions_status == self.MotionsStatus.MOTIONS_RELEASED or not self.motion_set.exists()
 
     @property
+    def motions_released(self):
+        return self.motions_status == self.MotionsStatus.MOTIONS_RELEASED
+
+    @property
     def ballots_per_debate(self):
         return self.tournament.ballots_per_debate(self.stage)
 

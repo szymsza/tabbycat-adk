@@ -474,7 +474,7 @@ class InstitutionRegistrationTableView(TournamentMixin, AdministratorMixin, VueT
 
         table = TabbycatTableBuilder(view=self, title=_('Responses'), sort_key='name')
         table.add_column({'key': 'name', 'title': _("Name")}, [t_inst.institution.name for t_inst in t_institutions])
-        table.add_column({'key': 'name', 'title': _("Coach")}, [{
+        table.add_column({'key': 'coach', 'title': _("Coach")}, [{
             'text': (coach := t_inst.coach_set.first()).name,
             'link': reverse_tournament('reg-inst-landing', self.tournament, kwargs={'url_key': coach.url_key}),
         } for t_inst in t_institutions])

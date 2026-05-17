@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from push_notifications.exceptions import WebPushError
 from push_notifications.models import WebPushDevice
 
 
@@ -150,3 +151,10 @@ class ParticipantWebPushDevice(WebPushDevice):
         if self.participant:
             return f"{self.participant.name} - {self.browser or 'Unknown browser'}"
         return super().__str__()
+
+    def send_message(self, message):
+        try:
+            super().send_message(message)
+        except WebPushError:
+            self.active = False
+            self.save(update_fields=['active'])

@@ -60,7 +60,7 @@ export default {
     isTeamInDebateTeams: function (idToFind, debateTeams) {
       let found = false
       Object.keys(debateTeams).forEach(teamPosition => {
-        if (debateTeams[teamPosition].id === idToFind) {
+        if (debateTeams[teamPosition]?.id === idToFind) {
           found = true
         }
       })

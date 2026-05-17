@@ -16,7 +16,7 @@ class TournamentPreferenceForm(PreferenceForm):
         def get_pref(name, section=section):
             return self.cleaned_data.get(section + "__" + name) if (section + "__" + name) in self.cleaned_data else t.pref(name)
 
-        score_range_msg = _("Mininum score must be less than maximum score")
+        score_range_msg = _("Minimum score must be less than maximum score")
 
         if section == 'scoring':
             if get_pref('score_min') > get_pref('score_max'):
@@ -28,6 +28,9 @@ class TournamentPreferenceForm(PreferenceForm):
         elif section == 'draw_rules':
             if get_pref('draw_side_allocations') != 'preallocated' and get_pref('draw_odd_bracket') in ['intermediate1', 'intermediate2']:
                 raise ValidationError({'draw_rules__draw_odd_bracket': _("Intermediate 1 or 2 require preallocated sides")})
+
+            if get_pref('draw_avoid_conflicts') != 'graph_one' and get_pref('draw_odd_bracket') in ['pullup_lowest_ds_rank', 'pullup_lowest_ds_rank_npulls']:
+                raise ValidationError({'draw_rules__draw_odd_bracket': _("Draw strength pullups require 'Minimum cost matching (including pullups)' as the conflict avoidance method")})
 
         elif section == 'debate_rules':
             if get_pref('teams_in_debate') == 4 and (get_pref('ballots_per_debate_prelim') == 'per-adj' or get_pref('ballots_per_debate_elim') == 'per-adj'):

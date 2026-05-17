@@ -663,7 +663,9 @@ class BasePublicNewBallotSetView(PersonalizablePublicTournamentPageMixin, RoundM
             bses = BallotSubmission.objects.filter(
                 debate=self.debate, participant_submitter__isnull=False, discarded=False, single_adj=True,
             ).select_related('participant_submitter').annotate(ordering=Window(Rank(), partition_by="participant_submitter", order_by="-version")).filter(ordering=1)
-            if len(bses) != DebateAdjudicator.objects.filter(debate=self.debate).exclude(type=DebateAdjudicator.TYPE_TRAINEE).count():
+            missing_adjs = DebateAdjudicator.objects.filter(debate=self.debate).exclude(
+                type=DebateAdjudicator.TYPE_TRAINEE, adjudicator_id__in=[bs.participant_submitter_id for bs in bses]).count()
+            if missing_adjs:
                 return
             populate_results(bses, self.tournament)
 

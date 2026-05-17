@@ -82,3 +82,8 @@ nosetests.xml
 
 # Redis
 dump.rdb
+
+.env
+backups/
+tabbycat_backup*.sql
+docker-compose.debug.yml

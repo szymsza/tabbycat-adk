@@ -6,9 +6,14 @@
       {{ cellData.checked }}
     </span>
     <div class="table-check">
-      <input type="checkbox" class="form-check-input position-static"
-             :name="cellData.name" :value="cellData.value"
-             @change="checkUpdate" v-model.lazy="cellData.checked">
+      <input
+        :checked="cellData.checked"
+        type="checkbox"
+        class="form-check-input position-static"
+        :name="cellData.name"
+        :value="cellData.value"
+        @change="checkUpdate($event.target.checked)"
+      >
     </div>
 
   </td>
@@ -25,12 +30,13 @@ export default {
     cellData: Object,
   },
   methods: {
-    checkUpdate: function () {
+    checkUpdate: function (newChecked) {
       if (this.cellData.noSave) {
         return // Some uses of CheckboxTablesContainer, e.g. emails, don't save
       }
       const cd = this.cellData
-      const checked = cd.checked // This is currently the pre-clicked value
+      const checked = newChecked !== undefined ? newChecked : cd.checked
+      cd.checked = checked
       // Updates can be sent off individually via this component itself; or by
       // communicating back up to the Coordinating Vue Container (where they
       // can be handled in bulk or issue via a single bulk method)

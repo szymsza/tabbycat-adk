@@ -19,7 +19,7 @@ from tournaments.mixins import (CurrentRoundMixin, OptionalAssistantTournamentPa
                                 PublicTournamentPageMixin, RoundMixin, TournamentMixin)
 from tournaments.models import Round
 from users.permissions import Permission
-from utils.misc import redirect_round
+from utils.misc import redirect_round, reverse_tournament
 from utils.mixins import AdministratorMixin
 from utils.views import ModelFormSetView, PostOnlyRedirectView
 
@@ -171,14 +171,16 @@ class BaseReleaseMotionsView(AdministratorMixin, LogActionMixin, RoundMixin, Pos
         round.save()
         self.log_action()
 
-        if self.motions_released:
+        if self.motions_status == Round.MotionsStatus.MOTIONS_RELEASED and settings.ENABLE_PUSH_NOTIFICATIONS:
+            n_motions = self.round.motion_set.count()
             notification_title = _("%(tournament)s - %(round)s") % {'tournament': self.tournament.short_name, 'round': self.round.name}
             for device in ParticipantWebPushDevice.objects.filter(tournament=self.tournament):
                 with override(device.language or 'en'):
                     device.send_message(
                         message=json.dumps({
                             "title": notification_title,
-                            "message": _("The motion has been released."),
+                            "message": ngettext("The motion has been released.", "The motions have been released.", n_motions),
+                            "url": self.request.build_absolute_uri(reverse_tournament('motions-public', self.tournament)),
                         }),
                     )
 

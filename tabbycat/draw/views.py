@@ -5,6 +5,7 @@ import unicodedata
 from itertools import product
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.contrib import messages
 from django.db import DatabaseError, transaction
 from django.db.models import OuterRef, Subquery
@@ -350,6 +351,7 @@ class AdminDrawUtilitiesMixin:
         if hasattr(self, 'highlighted_cells_exist'):
             data['highlighted_cells_exist'] = self.highlighted_cells_exist
         data['expected_nmotions'] = 3 if self.tournament.pref('enable_motions') else (self.round.motion_set.count() or 1)
+        data['has_info_slides'] = self.round.motion_set.exclude(info_slide='').exists()
         return data
 
 
@@ -792,6 +794,13 @@ class DrawReleaseView(DrawStatusEdit):
         self.round.save()
         self.log_action()
 
+        if settings.ENABLE_PUSH_NOTIFICATIONS:
+            self.send_push_notifications()
+
+        messages.success(request, _("Released the draw."))
+        return super().post(request, *args, **kwargs)
+
+    def send_push_notifications(self):
         debates = self.round.debate_set.select_related('venue').prefetch_related(
             'venue__venuecategory_set', 'debateadjudicator_set__adjudicator__participantwebpushdevice_set',
             'debateteam_set__team__speaker_set__participantwebpushdevice_set',
@@ -815,6 +824,7 @@ class DrawReleaseView(DrawStatusEdit):
                                     'venue': getattr(debate.venue, 'display_name', _('Room TBA')),
                                     'matchup': matchup,
                                 },
+                                "url": self.request.build_absolute_uri(reverse_tournament('privateurls-person-index', self.tournament, {'url_key': d_adjudicator.adjudicator.url_key})),
                             }),
                         )
             for d_team in debate.debateteam_set.all():
@@ -829,11 +839,9 @@ class DrawReleaseView(DrawStatusEdit):
                                         'venue': getattr(debate.venue, 'display_name', _('Room TBA')),
                                         'matchup': matchup,
                                     },
+                                    "url": self.request.build_absolute_uri(reverse_tournament('privateurls-person-index', self.tournament, {'url_key': speaker.url_key})),
                                 }),
                             )
-
-        messages.success(request, _("Released the draw."))
-        return super().post(request, *args, **kwargs)
 
 
 class DrawTeamsReleaseView(DrawStatusEdit):

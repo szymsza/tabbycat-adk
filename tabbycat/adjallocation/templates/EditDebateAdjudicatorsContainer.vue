@@ -106,7 +106,7 @@ export default {
   }),
   computed: {
     maxTeams: function () {
-      return Math.max(...this.sortedDebatesOrPanels.map(d => d.teams.length))
+      return Math.max(...this.sortedDebatesOrPanels.map(d => d.teams ? d.teams.length : 0), 2)
     },
     groupedDebatesByRound: function () {
       // Group already-sorted debates by their round for visual separation

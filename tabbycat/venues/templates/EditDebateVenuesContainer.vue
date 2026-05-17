@@ -77,7 +77,7 @@ export default {
       return this.$store.getters.allocatableItems
     },
     maxTeams: function () {
-      return Math.max(...this.sortedDebatesOrPanels.map(d => d.teams.length))
+      return Math.max(...this.sortedDebatesOrPanels.map(d => d.teams ? d.teams.length : 0), 2)
     },
     groupedDebatesByRound: function () {
       const groups = {}

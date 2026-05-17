@@ -3,7 +3,7 @@
 
     <div class="db-flex-item-2 db-flex-row db-bottom-border">
       <div class="db-padding-horizontal flex-grow-1 db-align-vertical-center">
-        <strong v-text="tct('%s, %s', [titleCasePosition, teamName])"></strong>
+        <strong v-html="tct('%s, %s', [titleCasePosition, teamName])"></strong>
       </div>
       <div class="db-padding-horizontal db-align-vertical-center strong small" v-if="this.team.iron"
            v-text="gettext('IMPORTANT: Check and explicitly note if a speaker gives multiple speeches')"></div>

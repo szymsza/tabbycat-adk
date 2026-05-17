@@ -358,6 +358,11 @@ class GraphCostMixin:
 
 class AustralsPairingMixin:
 
+    def resolve_odd_brackets(self, brackets):
+        if self.options['odd_bracket'] in ('pullup_lowest_ds_rank', 'pullup_lowest_ds_rank_npulls'):
+            raise DrawUserError(_("Draw strength pullups require 'Minimum cost matching (including pullups)' as the conflict avoidance method"))
+        return super().resolve_odd_brackets(brackets)
+
     def generate_pairings(self, brackets):
         """Returns a function taking an OrderedDict as returned by
         resolve_odd_brackets(), and returning a list of Debates."""
@@ -571,7 +576,7 @@ class SingleGraphPowerPairedDrawGenerator(GraphCostMixin, GraphGeneratorMixin, B
 
     @staticmethod
     def _pullup_lowest_ds_rank(team, size=None):
-        return -team.draw_strength_rank
+        return -getattr(team, 'draw_strength_rank', 0)
 
     @staticmethod
     def _pullup_lowest_ds_rank_npulls(team, size=None):
