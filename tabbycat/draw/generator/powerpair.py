@@ -492,7 +492,7 @@ class GraphPowerPairedDrawGenerator(GraphCostMixin, GraphGeneratorMixin, BasePow
 class SingleGraphPowerPairedDrawGenerator(GraphCostMixin, GraphGeneratorMixin, BasePowerPairedDrawGenerator):
 
     def generate(self):
-        max_points = max([t.points for t in self.teams if t.points is not None], default=0)
+        max_points = int(max([t.points for t in self.teams if t.points is not None], default=0))
         self.n_teams_per_points = {i: len([t for t in self.teams if t.points == i]) for i in range(max_points+1)}
 
         self.annotate_team_pullup_precedence(self.teams)
@@ -508,7 +508,7 @@ class SingleGraphPowerPairedDrawGenerator(GraphCostMixin, GraphGeneratorMixin, B
 
     def assignment_cost(self, t1, t2, size, bracket=None) -> Optional[int]:
         min_points = min(t1.points, t2.points)
-        max_points = max(t1.points, t2.points)
+        max_points = int(max(t1.points, t2.points))
         size = self.n_teams_per_points[max_points]
         penalty = super().assignment_cost(t1, t2, size)
         if penalty is None:

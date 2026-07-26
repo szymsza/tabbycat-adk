@@ -7,6 +7,9 @@ from django.utils.translation import gettext_lazy as _
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(__file__, os.pardir)))
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+CSRF_TRUSTED_ORIGINS = ["http://*.debatovani.cz", "https://*.debatovani.cz"]
+CSRF_COOKIE_HTTPONLY = False
+
 # ==============================================================================
 # Overwritten in local.py or heroku.py
 # ==============================================================================
