@@ -45,7 +45,7 @@ services:
       - DOCKER_REDIS=1
       - USING_NGINX=1
     ports:
-      - "8069:8000"
+      - "${FORWARD_PORT:-8069}:8000"
     working_dir: /tcd
     restart: always
 
