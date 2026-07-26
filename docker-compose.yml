@@ -18,12 +18,14 @@ services:
       - POSTGRES_USER=tabbycat
       - POSTGRES_DB=tabbycat
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata18:/var/lib/postgresql
+    restart: always
 
   redis:
     image: redis:6
     volumes:
      - redis_data:/data
+    restart: always
 
   web:
     build: .
@@ -34,6 +36,8 @@ services:
       - redis
     expose:
       - "8000"
+    env_file:
+      - .env
     environment:
       - DEBUG=1
       - IN_DOCKER=1
@@ -41,8 +45,9 @@ services:
       - DOCKER_REDIS=1
       - USING_NGINX=1
     ports:
-      - "8000:8000"
+      - "8069:8000"
     working_dir: /tcd
+    restart: always
 
   worker:
     build: .
@@ -51,6 +56,8 @@ services:
     depends_on:
       - db
       - redis
+    env_file:
+      - .env
     environment:
       - DEBUG=1
       - IN_DOCKER=1
@@ -58,8 +65,9 @@ services:
       - DOCKER_REDIS=1
       - USING_NGINX=1
     working_dir: /tcd
+    restart: always
 
 volumes:
-  pgdata:
+  pgdata18:
   node_modules:
   redis_data:
