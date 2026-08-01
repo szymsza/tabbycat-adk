@@ -332,6 +332,45 @@ Vue UI as part of this feature.
 Exact preference section/name and model field name (`self_split` used
 above) are finalized in the Design section as implemented.
 
+### Bug found in manual testing: checkbox missing on the solo judge's own submission
+
+After deploying, the checkbox was correctly visible when tab room staff
+entered/reviewed a solo debate's ballot (`PerAdjudicatorBallotSetForm`), but
+was **missing entirely from the adjudicator's own private-URL submission
+page** — exactly the primary use case this feature exists for.
+
+Root cause: `BasePublicNewBallotSetView.populate_objects()`
+(`results/views.py:585`) sets `single_adj=self.tournament.pref('individual_ballots')`
+on every participant-submitted `BallotSubmission`. `get_result_class()`
+(`result.py:83`) treats *any* ballot with `single_adj=True` as a Consensus
+result regardless of the debate's actual panel size, so whenever a
+tournament has the "Individual voting ballots" preference on (each
+adjudicator submits their own ballot, later merged) — which is exactly what
+the user's test tournament had enabled — a solo debate's own submission is
+routed through `SingleBallotSetForm`, not `PerAdjudicatorBallotSetForm`.
+The checkbox had only been added to the latter.
+
+Fix:
+- Moved the `allowing_self_split` gating condition (now also requiring
+  `tournament.ballots_per_debate(round.stage) == 'per-adj'`, since
+  votes-based aggregation only exists for that mode) from
+  `PerAdjudicatorBallotSetForm` up into the shared `BaseBallotSetForm.get_preferences_options()`,
+  and added the same checkbox wiring (`create_score_fields`,
+  `initial_from_result`, `list_score_fields`, `populate_result_with_scores`,
+  `scoresheets()`) to `SingleBallotSetForm` as well.
+- Added `self_split` propagation at both places where individual
+  (`single_adj=True`) submissions get merged into the final by-adjudicator
+  ballot: the auto-merge path in `BasePublicNewBallotSetView.postprocess_result()`
+  and the tab-room "Merge Ballots" review flow in
+  `BaseMergeLatestBallotsView.populate_objects()` — both now set
+  `merged_bs.self_split = any(bs.self_split for bs in bses)` before saving,
+  so a solo judge's own declared choice survives into the confirmed result
+  that `teamscore_field_votes_given`/`votes_possible` actually reads.
+- Verified end-to-end against the live deployment: fetched the actual
+  private-URL ballot page for a solo adjudicator in a tournament with
+  `individual_ballots` on, and confirmed the checkbox now renders in the
+  HTML response.
+
 ### Testing plan
 
 - Model/migration test: `BallotSubmission.self_split` round-trips via the
