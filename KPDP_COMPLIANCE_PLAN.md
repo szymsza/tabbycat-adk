@@ -306,15 +306,31 @@ carried" metric already gives us, once populated correctly.
    the flag becomes visible directly on the results view instead of only
    being inferable from standings.
 
-### Open items to resolve during implementation
+### Resolved: ballot-entry UI architecture
 
-- **Confirm whether the ballot-entry screen is a server-rendered Django
-  form or a Vue component** (this app mixes both across different pages).
-  This directly affects how much front-end work is needed to add the
-  checkbox and wire up its state — needs to be checked as the very first
-  implementation step, before estimating UI effort further.
-- Exact preference section/name and model field name (`self_split` used
-  above is a placeholder pending naming review).
+Tabbycat has two parallel UI generations for ballot entry. The
+adjudicator-facing self-entry page (`BasePublicNewBallotSetView`,
+`results/views.py:541`, template `public_enter_results.html` →
+`ballot/ballot_set.html`) — i.e. the page a solo adjudicator actually
+uses — is **plain server-rendered Django templates**, not Vue. The
+existing `declared_winner` dropdown already round-trips end-to-end through
+this exact path (`forms.py` field → `ballot/ballot_set.html:75-79` →
+normal POST), so adding a checkbox alongside it is a small, well-trodden
+change: one more form field + one more `{% include %}` line, no
+JS/frontend framework work required. The old admin/assistant UIs
+(`enter_results.html`, `assistant_enter_results.html`) share the same
+`ballot/ballot_set.html` partial, so they get the checkbox for free too.
+
+The newer "beta" admin/assistant Vue UI (`ballot_entry.html` +
+`BallotEntryContainer.vue`) does **not** currently wire up `declared_winner`
+at all (it's not present in the Vue mirror-form markup) — this is a
+pre-existing gap unrelated to this feature. Decision: ship the self-split
+checkbox for the classic/public UI only, consistent with how
+`declared_winner` already behaves; do not attempt to add it to the beta
+Vue UI as part of this feature.
+
+Exact preference section/name and model field name (`self_split` used
+above) are finalized in the Design section as implemented.
 
 ### Testing plan
 
