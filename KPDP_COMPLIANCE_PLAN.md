@@ -81,6 +81,18 @@ just speaker scores. Since both flow through the same `mean(...)` pattern,
 this falls out naturally from changing all three call sites consistently
 (no reason to special-case team scoring separately).
 
+**Decision (confirmed with user):** For an **even-sized panel**, where
+there is no single middle value, fall back to the **mean of all relevant
+adjudicators' scores, rounded up to the nearest whole number** (ceiling),
+rather than Python's default even-length `statistics.median` behavior
+(which averages the two middle values). KPDP panels are normally
+odd-sized, so this fallback is expected to be rare in practice, but must be
+implemented explicitly rather than left to `statistics.median`'s default.
+
+**Decision (confirmed with user):** Use a `ChoicePreference` (not a
+boolean) for the aggregation function, so the option reads clearly in the
+tournament options UI and leaves room for future aggregation methods.
+
 ### Design
 
 1. **New tournament preference** in `tabbycat/options/preferences.py`,
@@ -90,8 +102,18 @@ this falls out naturally from changing all three call sites consistently
    @tournament_preferences_registry.register
    class ScoreAggregationFunction(ChoicePreference):
        help_text = _("How to combine multiple adjudicators' scores into a "
-           "single recorded score/margin for a panel-judged debate. KPDP "
-           "rules require median.")
+           "single recorded score for a panel-judged debate. This affects "
+           "SpeakerScore, TeamScore and SpeakerCriterionScore values (and, "
+           "transitively, margins) for every panel-judged debate in this "
+           "tournament — changing it recalculates results the next time "
+           "each affected ballot is saved. 'Mean' averages all relevant "
+           "adjudicators' scores. 'Median' (required by KPDP rules) uses "
+           "the middle score for odd-sized panels; for even-sized panels, "
+           "where there is no single middle value, it falls back to the "
+           "mean, rounded up to the nearest whole number. Which "
+           "adjudicators count as 'relevant' is still controlled "
+           "separately by the 'Margin includes dissenting adjudicators' "
+           "option above.")
        verbose_name = _("Panel score aggregation function")
        section = scoring
        name = 'score_aggregation_function'
@@ -102,18 +124,22 @@ this falls out naturally from changing all three call sites consistently
        default = 'mean'
    ```
 
-   (Naming/section placement to be finalized during implementation — a
-   simple boolean, e.g. `UseMedianForPanelScores`, is a reasonable
-   alternative if a binary toggle reads more clearly than a choice field.)
-
 2. **Aggregator selection helper** on `DebateResultByAdjudicatorWithScores`:
 
    ```python
    def _score_aggregator(self):
+       def median_or_rounded_up_mean(values):
+           values = list(values)
+           if len(values) % 2 == 1:
+               return statistics.median(values)
+           return math.ceil(statistics.mean(values))
+
        if self.tournament.pref('score_aggregation_function') == 'median':
-           return statistics.median
+           return median_or_rounded_up_mean
        return statistics.mean
    ```
+
+   (Requires `import math` alongside the existing `statistics` import.)
 
 3. Replace `mean(...)` with `self._score_aggregator()(...)` at the three
    call sites listed above.
@@ -126,25 +152,16 @@ this falls out naturally from changing all three call sites consistently
 5. **No database migration required.** `django-dynamic-preferences` is
    schema-less; registering a new preference class is sufficient.
 
-### Open items to resolve during implementation
-
-- **Even-sized panels**: Python's `statistics.median` averages the two
-  middle values when given an even number of scores. KPDP panels are
-  normally odd-sized (1 or 3), so this likely never triggers in practice,
-  but worth a quick explicit confirmation of intended behavior for even
-  panels (e.g. a 4-judge panel) before shipping.
-- Final preference name/type (`ChoicePreference` vs `BooleanPreference`) —
-  pick based on whether we expect more aggregation options later (e.g.
-  trimmed mean) or just mean/median forever.
-
 ### Testing plan
 
 - Extend `tabbycat/results/tests/test_result.py` with cases mirroring the
   existing mean-aggregation tests, asserting median output for odd panels,
-  and documenting the even-panel behavior explicitly.
+  and the rounded-up-mean fallback for even panels (e.g. a 4-judge panel
+  with scores that produce a non-whole mean).
 - Manual check: create a KPDP-preference tournament in the local Docker
   deployment, enter a 3-judge panel ballot with divergent scores, confirm
-  `SpeakerScore.score` / `TeamScore.score` reflect the median, not the mean.
+  `SpeakerScore.score` / `TeamScore.score` reflect the median, not the mean;
+  repeat with a 4-judge panel to confirm the rounded-up-mean fallback.
 
 ### Effort estimate
 
@@ -271,12 +288,23 @@ carried" metric already gives us, once populated correctly.
    consistent with how real panel splits are already handled.
 
 6. **Display** — `adjudicators_with_splits()` (`result.py`, line ~631) and
-   the ballot tables that render split information (`utils/tables.py:602`,
-   gated by the existing `ShowSplittingAdjudicators` preference) currently
-   assume splits only occur on real multi-adjudicator panels. These will
-   need a small addition so a solo self-split also renders as "2:1" (e.g.
-   "Split decision (self-declared)") rather than being silently shown as a
-   clean unanimous decision.
+   the ballot tables that render split information (`utils/tables.py:602`)
+   currently assume splits only occur on real multi-adjudicator panels, and
+   are gated by the existing `ShowSplittingAdjudicators`
+   (`show_splitting_adjudicators`) preference.
+
+   **Decision (confirmed with user):** reuse that same existing
+   `show_splitting_adjudicators` preference/toggle to also control
+   visibility of the self-split flag, rather than introducing a separate
+   visibility setting. Concretely: wherever real panel splits are currently
+   shown at adjudicator-facing results (the same views/tables driven by
+   `adjudicators_with_splits()` / `utils/tables.py:602`), a solo self-split
+   ballot should render an equivalent "2:1 (self-declared)" indicator when
+   `show_splitting_adjudicators` is on. This is intentionally symmetric
+   with how real splits are surfaced today, and doubles as the easiest way
+   to manually verify the feature end-to-end (see Testing plan below) since
+   the flag becomes visible directly on the results view instead of only
+   being inferable from standings.
 
 ### Open items to resolve during implementation
 
@@ -287,9 +315,6 @@ carried" metric already gives us, once populated correctly.
   implementation step, before estimating UI effort further.
 - Exact preference section/name and model field name (`self_split` used
   above is a placeholder pending naming review).
-- Whether the self-split flag should also be visible on the adjudicator's
-  own submission confirmation screen / result confirmation email, or is
-  purely an internal/standings-facing flag for now.
 
 ### Testing plan
 
@@ -302,10 +327,13 @@ carried" metric already gives us, once populated correctly.
 - `standings/tests/test_standings.py`: a tournament with the "votes/ballots
   carried" metric enabled correctly ranks/ties teams based on self-split
   solo results, mirroring the existing real-panel-split test cases.
-- Manual check in local Docker deployment: enable
-  `allow_self_split_ballots` on a test tournament, enter a solo ballot with
-  the split checkbox ticked, confirm the standings page reflects a partial
-  ballot for the losing team.
+- Manual check in local Docker deployment: enable both
+  `allow_self_split_ballots` and `show_splitting_adjudicators` on a test
+  tournament, enter a solo ballot with the split checkbox ticked, and
+  confirm two things directly rather than only inferring from standings:
+  (a) the adjudicator-facing results view shows the "2:1 (self-declared)"
+  indicator, the same way a real panel split would be shown; (b) the
+  standings page reflects a partial ballot for the losing team.
 
 ### Effort estimate
 
