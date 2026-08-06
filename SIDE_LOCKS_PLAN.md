@@ -176,16 +176,24 @@ SIDE_PREALLOCATIONS_SAVE = 'sa.save', _("Edited side pre-allocations")
   depth, the frontend won't offer the control for drawn rounds anyway),
   `TeamSideAllocation.objects.update_or_create(...)` or `.delete()` if
   cleared. Mirrors `BaseAvailabilityUpdateView.post()`.
-- New `BulkApplySidePreallocationView(AdministratorMixin, LogActionMixin, View)`
-  — same permission, `POST` body `{target_round_id, source_round_id, invert: bool}`.
-  Validates `target_round.draw_status == NONE` and
-  `source_round.draw_status in (CONFIRMED, RELEASED)` (must be an actually
-  finished round — draft rounds' sides could still change). For each team:
-  look up `DebateTeam.objects.filter(debate__round=source_round, team=team).first()`;
-  if none (bye or team wasn't in that round), skip and count it; else
-  compute `side = dt.side` or `opposite_side(dt.side, tournament.pref('teams_in_debate'))`
-  and `update_or_create` the target round's `TeamSideAllocation`. Returns
-  JSON `{applied: N, skipped: N}` for the frontend's toast message.
+- New `BulkApplySidePreallocationView(AdministratorMixin, LogActionMixin, PostOnlyRedirectView)`
+  — same permission. Implemented as a plain synchronous form POST (not a
+  JSON/AJAX endpoint like the single-cell update above) since it doesn't
+  need to update the table in place — a normal Django `messages.success`/
+  `messages.error` + redirect back to the sides page is simpler and matches
+  the convention already used by the rest of `draw/views.py` for one-shot
+  admin actions (e.g. `SetRoundStartTimeView`, `ConfirmDrawRegenerationView`).
+  `POST` body (regular form fields) `{target_round_id, source_round_id, direction}`
+  (`direction` is `'same'` or `'opposite'`). Validates
+  `target_round.draw_status == NONE` and `source_round.draw_status in
+  (CONFIRMED, TEAMS_RELEASED, RELEASED)` (must be an actually finished round
+  — draft rounds' sides could still change). For each team: look up its
+  `DebateTeam` for `source_round` via a single bulk `values_list('team_id', 'side')`
+  query; if missing (bye or team wasn't in that round) or the side is
+  `DebateSide.BYE`, skip and count it; else compute `side = dt.side` or
+  `opposite_side(dt.side, tournament.pref('teams_in_debate'))` and
+  `update_or_create` the target round's `TeamSideAllocation`. Reports
+  applied/skipped counts via a `messages.success` banner.
 - `draw/urls_admin.py`: two new routes for the update views, e.g.
   `sides/update/` and `sides/bulk/`.
 
@@ -198,10 +206,15 @@ SIDE_PREALLOCATIONS_SAVE = 'sa.save', _("Edited side pre-allocations")
 - Register it in `templates/tables/SmartTable.vue` next to `CheckCell`
   (`components: { ..., SideCell }`) so `cellData.component: 'side-cell'`
   resolves.
-- Bulk tool: a small Vue component (or plain form + fetch, consistent with
-  how e.g. draw regeneration confirmation modals are done) above the
-  table, only rendered when there is at least one finished prior round to
-  copy from.
+- Bulk tool: a plain server-rendered `<form>` (new template
+  `draw/templates/side_allocations.html`, extending `tables/base_vue_table.html`
+  and overriding `content` to add the form above `{{ block.super }}`) — no
+  new Vue component needed, since it's a one-shot action with a full
+  redirect-back afterwards rather than an in-place table update. Only
+  rendered when there's an undrawn round to target and at least one
+  finished prior round to copy from; the submit button is guarded by a
+  native `confirm()` dialog since it overwrites existing pre-allocations
+  for every team in the target round.
 
 ## 9. Stretch (optional, not required for v1)
 
