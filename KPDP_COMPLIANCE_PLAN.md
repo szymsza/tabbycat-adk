@@ -421,3 +421,27 @@ as separate PRs against `kpdp-compliance` (or merged into it sequentially).
   reused, not modified.
 - Any change to non-KPDP tournaments' default behavior — both features are
   off by default via new preferences.
+
+## Follow-up: Final Ballot Overview on the merge page
+
+Added after initial manual testing, as a quality-of-life improvement for
+Feature A. When merging individually-submitted per-adjudicator ballots on
+the tab-room ("Merge Ballots") and assistant merge pages, tab room staff
+previously had to eyeball each adjudicator's raw scoresheet to sanity-check
+the median result. This adds a view-only summary card, shown between the
+individual ballots and the Ballot Status/confirm controls, containing:
+
+- Each team, its speakers, and each speaker's final (median-aggregated)
+  score for the debate.
+- Each team's aggregated total.
+- The result of the debate (winning team, vote split e.g. "2-1").
+- The names of all voting adjudicators, flagging any who dissented.
+
+It only appears when `score_aggregation_function` is `median` and there
+are 2+ voting adjudicators being merged (median is meaningless for a solo
+ballot); it never affects saved data, purely a read-only preview computed
+from the in-memory merged result before save. Implemented in
+`BaseMergeLatestBallotsView.get_median_overview()` (`results/views.py`)
+and `results/templates/ballot/median_overview.html`, included from both
+`enter_results.html` (admin) and `assistant_enter_results.html`
+(assistant). Covered by `results/tests/test_views.py::MergeLatestBallotsMedianOverviewTest`.
