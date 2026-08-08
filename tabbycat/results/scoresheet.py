@@ -123,12 +123,12 @@ class DeclaredWinnersMixin:
         assert winners <= set(self.sides) or len(winners) == 0, "Declared winners must be in: " + ", ".join(map(repr, self.sides))
         self.declared_winners = winners
 
-    def identical(self, other):                                                                                           
-        if len(self.declared_winners) != self.number_winners:                                                             
-            return False                                                                                                  
-        if not hasattr(other, 'declared_winners') or len(other.declared_winners) != getattr(other, 'number_winners', -1): 
-            return False                                                                                                  
-        return super().identical(other) and set(self._get_winners()) == set(other._get_winners()) 
+    def identical(self, other):
+        if len(self.declared_winners) != self.number_winners:
+            return False
+        if not hasattr(other, 'declared_winners') or len(other.declared_winners) != getattr(other, 'number_winners', -1):
+            return False
+        return super().identical(other) and set(self._get_winners()) == set(other._get_winners())
 
     def _get_winners(self):
         assert len(self.declared_winners) == self.number_winners, "There can only be this number of winners: %d" % self.number_winners
