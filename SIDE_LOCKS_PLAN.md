@@ -116,14 +116,22 @@ but each column now renders one of three states:
 3. **Future undrawn rounds** (stretch, §9): same editable dropdown as (2),
    included only if we build the stretch scope.
 
-**Bulk tool** ("Side Locks" bulk-apply), shown once, above the table,
-targeting whichever round is currently editable as state (2):
+**Bulk tool** ("Side Locks" bulk-apply), shown once, above the table:
 
 ```
-Copy pre-allocation from round: [ dropdown: any earlier finished round ]
-Direction:                      ( ) Same as that round   ( ) Opposite of that round
-                                 [ Apply to all teams ]
+Set pre-allocations for: [ dropdown: any not-yet-drawn preliminary round ]
+Copy from:                [ dropdown: any earlier finished round ]
+Direction:                ( ) Same as that round   ( ) Opposite of that round
+                           [ Apply to all teams ]
 ```
+
+The target-round dropdown defaults to the immediately-next undrawn round
+(the one editable inline in the matrix) but can be pointed at any further
+undrawn round too.
+
+A short paragraph above the tool explains the matrix's two display modes:
+rounds with a draw already show each team's actual side; rounds without one
+yet show the (editable, for the next round) pre-allocation.
 
 Clicking "Apply" POSTs once, shows a confirmation dialog first (it
 overwrites existing pre-allocations for every team in the target round —
@@ -224,6 +232,16 @@ teams that like to plan side balance several rounds ahead. Purely additive
 on top of the v1 design (same cell component, same update endpoint, just a
 looser "which columns are editable" condition), so it can land in a
 follow-up PR without touching v1's shape.
+
+**Partially implemented** (post-v1 follow-up, same PR): the bulk-apply
+tool's target round is now a `<select>` (`target_round_choices` in
+`SideAllocationsView.get_context_data()`) listing *every* not-yet-drawn
+preliminary round, not just the immediate next one — `BulkApplySidePreallocationView`
+never actually hardcoded the target round server-side, so this only
+required a template change. A further undrawn round's cell in the matrix
+is still not inline-editable (that's still the stretch item above), but if
+a pre-allocation exists for it (e.g. set via the bulk tool) it's now shown
+read-only in the matrix instead of always "—".
 
 ## 10. Edge cases
 
