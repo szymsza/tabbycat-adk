@@ -1,4 +1,5 @@
 import logging
+from statistics import median
 
 from django.test import TestCase
 
@@ -806,6 +807,76 @@ class TestVotingDebateResultWithScores(GeneralSpeakerTestsMixin, BaseTestDebateR
 
         self.assertAlmostEqual(sum(expected_aff_scores), self._get_teamscore_in_db(DebateSide.AFF).score)
         self.assertAlmostEqual(sum(expected_neg_scores), self._get_teamscore_in_db(DebateSide.NEG).score)
+
+    @with_preference('scoring', 'score_aggregation_function', 'median')
+    @with_preference('scoring', 'margin_includes_dissenters', True)
+    @with_preference('debate_rules', 'reply_scores_enabled', False)
+    def test_median_aggregation_typical_kpdp_panel(self):
+        """Test median aggregation against a realistic KPDP-style panel: 3 judges,
+        3 substantive speakers, no reply speech (per the actual KPDPPreferences
+        preset: substantive_speakers=3, reply_scores_enabled=False), scores
+        clustered around 75.
+
+        Chosen so that two of AFF's three judges give very different marks per
+        speaker (one favours speakers 1-2, the other favours speaker 3) but
+        still land on close *team totals* - while NEG's three judges broadly
+        agree on every speaker but their totals still land on different
+        whole numbers. Both patterns are common in real adjudication, and
+        both make "median of each judge's own team total" diverge from "sum
+        of each speaker's median score", proving the two formulas are not
+        interchangeable even on ordinary, non-contrived data.
+        """
+        testdata = {
+            'input': {
+                'declared_winners': [DebateSide.NEG, DebateSide.NEG, DebateSide.NEG],
+                'scores': [
+                    [[78.0, 78.0, 66.0], [73.0, 76.0, 78.0]],
+                    [[66.0, 66.0, 90.0], [78.0, 76.0, 73.0]],
+                    [[74.0, 75.0, 75.0], [75.0, 75.0, 75.0]],
+                ],
+            },
+            'num_adjs': 3,
+            'num_speakers_per_team': 3,
+        }
+        # Not using save_complete_result(): it unconditionally adds a 4th
+        # ("reply") speaker position, which is wrong here - with
+        # reply_scores_enabled=False, self.positions is only [1, 2, 3], and
+        # assert_loaded() requires self.speakers[side]'s keys to match
+        # self.positions exactly.
+        nspeakers = testdata['num_speakers_per_team']
+        result = self.save_blank_result(nadjs=testdata['num_adjs'], nspeakers=nspeakers)
+        for side, team in zip(self.SIDES, self.teams):
+            for pos, speaker in enumerate(team.speaker_set.all()[0:nspeakers], start=1):
+                result.set_speaker(side, pos, speaker)
+        self.save_scores_to_result(testdata, result)
+        with suppress_logs('results.result', logging.WARNING):
+            result.save()
+
+        # AFF judges' own totals: 222, 222, 224 -> median of totals = 222.
+        # But per-position medians are [74, 75, 75] -> sum of medians = 224.
+        expected_aff_scores = [74.0, 75.0, 75.0]
+        # NEG judges' own totals: 227, 227, 225 -> median of totals = 227.
+        # Per-position medians are [75, 76, 75] -> sum of medians = 226.
+        expected_neg_scores = [75.0, 76.0, 75.0]
+
+        for pos, (aff_expected, neg_expected) in enumerate(zip(expected_aff_scores, expected_neg_scores), start=1):
+            with suppress_logs('results.result', logging.WARNING):
+                self.assertAlmostEqual(aff_expected, self._get_speakerscore_in_db(DebateSide.AFF, pos).score,
+                                       msg=f"AFF position {pos} score mismatch")
+                self.assertAlmostEqual(neg_expected, self._get_speakerscore_in_db(DebateSide.NEG, pos).score,
+                                       msg=f"NEG position {pos} score mismatch")
+
+        aff_teamscore = self._get_teamscore_in_db(DebateSide.AFF).score
+        neg_teamscore = self._get_teamscore_in_db(DebateSide.NEG).score
+
+        # The team score is the sum of the per-position medians ...
+        self.assertAlmostEqual(sum(expected_aff_scores), aff_teamscore)
+        self.assertAlmostEqual(sum(expected_neg_scores), neg_teamscore)
+
+        # ... and NOT the median of the judges' own team totals, which would
+        # give a different (wrong) number for both sides here.
+        self.assertNotAlmostEqual(median([222.0, 222.0, 224.0]), aff_teamscore)
+        self.assertNotAlmostEqual(median([227.0, 227.0, 225.0]), neg_teamscore)
 
     @with_preference('scoring', 'score_aggregation_function', 'mean')
     @with_preference('scoring', 'margin_includes_dissenters', True)
