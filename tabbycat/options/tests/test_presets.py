@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from options.presets import get_preset_from_slug, PreferencesPreset
+from options.presets import get_preset_from_slug, KPDPPreferences, PreferencesPreset
 from tournaments.models import Tournament
 
 
@@ -63,6 +63,17 @@ class TestPresets(TestCase):
             self.assertTrue(pref in form.fields)
             self.assertEqual(form[pref].initial, new_val)
             self.assertEqual(form[pref].changed, True)
+
+        tournament.delete()
+
+    def test_kpdp_preset(self):
+        tournament = self.set_up_tournament()
+        form = KPDPPreferences.get_form(tournament)
+
+        self.assertEqual(KPDPPreferences.name, "KPDP Rules")
+        self.assertEqual(form['scoring__score_aggregation_function'].initial, 'median')
+        self.assertEqual(form['data_entry__allow_self_split_ballots'].initial, True)
+        self.assertEqual(form['draw_rules__draw_pairing_method'].initial, 'adjacent')
 
         tournament.delete()
 
