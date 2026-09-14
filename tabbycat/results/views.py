@@ -44,7 +44,7 @@ from .forms import (broadcast_results, PerAdjudicatorBallotSetForm, PerAdjudicat
                     SingleBallotSetForm, SingleEliminationBallotSetForm)
 from .models import BallotSubmission, ScoreCriterion, TeamScore
 from .prefetch import populate_confirmed_ballots, populate_results
-from .result import DebateResult, get_class_name
+from .result import DebateResult, DebateResultByAdjudicatorWithScores, get_class_name
 from .tables import ResultsTableBuilder
 from .utils import get_status_meta, populate_identical_ballotsub_lists
 
@@ -676,6 +676,7 @@ class BasePublicNewBallotSetView(PersonalizablePublicTournamentPageMixin, RoundM
 
             if len(errors) == 0:
                 has_errors = False
+                merged_bs.self_split = any(bs.self_split for bs in bses)
                 merged_bs.save()
                 merged_result.save()
 
@@ -972,6 +973,7 @@ class BaseMergeLatestBallotsView(BaseNewBallotSetView):
             ).annotate(ordering=Window(Rank(), partition_by="participant_submitter", order_by="-version")).filter(ordering=1).select_related('participant_submitter')
             populate_results(bses, self.tournament)
             self.merged_ballots = bses
+            self.ballotsub.self_split = any(bs.self_split for bs in bses)
 
         # Handle result conflicts
         criteria = ScoreCriterion.objects.filter(tournament=self.tournament)
@@ -1003,6 +1005,48 @@ class BaseMergeLatestBallotsView(BaseNewBallotSetView):
         for b in q:
             b.merged = b.id in merged
         return q
+
+    def get_median_overview(self):
+        """View-only preview of the merged, median-aggregated result, shown
+        only when the KPDP median scoring preference is on and there's an
+        actual panel (2+ voting adjudicators) to aggregate across."""
+        result = self.result
+        if self.tournament.pref('score_aggregation_function') != 'median':
+            return None
+        if not isinstance(result, DebateResultByAdjudicatorWithScores):
+            return None
+        if len(result.scoresheets) < 2:
+            return None
+        if not result.is_valid():
+            return None
+
+        teams = [{
+            'team': result.debateteams[side].team,
+            'speakers': [{
+                'speaker': result.get_speaker(side, pos),
+                'score': result.speakerscore_field_score(side, pos),
+            } for pos in result.positions],
+            'total': result.teamscore_field_score(side),
+        } for side in result.sides]
+
+        votes = {side: result.teamscore_field_votes_given(side) for side in result.sides}
+        split = "-".join(str(v) for v in sorted(votes.values(), reverse=True))
+
+        adjudicators = [{
+            'adjudicator': adj,
+            'split': is_split,
+        } for adj, adjtype, is_split in result.adjudicators_with_splits()]
+
+        return {
+            'teams': teams,
+            'winner': result.winning_team(),
+            'split': split,
+            'adjudicators': adjudicators,
+        }
+
+    def get_context_data(self, **kwargs):
+        kwargs['median_overview'] = self.get_median_overview()
+        return super().get_context_data(**kwargs)
 
 
 class AdminMergeLatestBallotsView(OldAdministratorBallotSetMixin, BaseMergeLatestBallotsView):
